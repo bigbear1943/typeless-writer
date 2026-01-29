@@ -34,6 +34,19 @@ def save_data(data):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
+def get_api_settings():
+    """取得 API 設定，優先使用 Streamlit Secrets"""
+    # 優先從 Streamlit Secrets 讀取
+    if hasattr(st, 'secrets'):
+        try:
+            provider = st.secrets.get("API_PROVIDER", "gemini")
+            key = st.secrets.get("API_KEY", "")
+            if key:
+                return provider, key, True  # True = 使用 Secrets
+        except Exception:
+            pass
+    return None, None, False
+
 # ========== AI 生成 ==========
 SYSTEM_PROMPT = """你是一位專業的內容編輯與 SEO 專家。你的任務是將使用者提供的「碎片化靈感」整理成結構完整的文章和社群貼文。
 
@@ -196,30 +209,40 @@ def main():
     st.markdown('<h1 class="main-title">✍️ Typeless Writer</h1>', unsafe_allow_html=True)
     st.markdown('<p class="subtitle">無壓力的碎片化創作</p>', unsafe_allow_html=True)
     
+    # 檢查是否有 Secrets 設定
+    secrets_provider, secrets_key, using_secrets = get_api_settings()
+    
     # 側邊欄設定
     with st.sidebar:
         st.header("⚙️ 設定")
         
-        # API 設定
-        api_provider = st.selectbox(
-            "AI 服務提供商",
-            ["gemini", "openai"],
-            index=0 if data["settings"]["api_provider"] == "gemini" else 1,
-            format_func=lambda x: "Google Gemini ✨" if x == "gemini" else "OpenAI 🤖"
-        )
-        
-        api_key = st.text_input(
-            "API Key",
-            value=data["settings"]["api_key"],
-            type="password",
-            help="你的 API Key 只會儲存在本機"
-        )
-        
-        if st.button("💾 儲存設定"):
-            data["settings"]["api_provider"] = api_provider
-            data["settings"]["api_key"] = api_key
-            save_data(data)
-            st.success("設定已儲存！")
+        if using_secrets:
+            # 使用 Secrets，顯示已連接狀態
+            st.success("✅ 已連接雲端 API 設定")
+            st.caption(f"使用 {secrets_provider.upper()} API")
+            api_provider = secrets_provider
+            api_key = secrets_key
+        else:
+            # 手動輸入模式
+            api_provider = st.selectbox(
+                "AI 服務提供商",
+                ["gemini", "openai"],
+                index=0 if data["settings"]["api_provider"] == "gemini" else 1,
+                format_func=lambda x: "Google Gemini ✨" if x == "gemini" else "OpenAI 🤖"
+            )
+            
+            api_key = st.text_input(
+                "API Key",
+                value=data["settings"]["api_key"],
+                type="password",
+                help="你的 API Key 只會儲存在本機"
+            )
+            
+            if st.button("💾 儲存設定"):
+                data["settings"]["api_provider"] = api_provider
+                data["settings"]["api_key"] = api_key
+                save_data(data)
+                st.success("設定已儲存！")
     
     # 專案管理
     col1, col2 = st.columns([3, 1])
@@ -330,7 +353,7 @@ def main():
                 st.write(f"**{i}.** {f['content'][:100]}{'...' if len(f['content']) > 100 else ''}")
         
         # 生成按鈕
-        if not data["settings"]["api_key"]:
+        if not using_secrets and not data["settings"]["api_key"]:
             st.error("⚠️ 請先在側邊欄設定中輸入 API Key")
             return
         
