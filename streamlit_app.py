@@ -371,15 +371,16 @@ def main():
             
             with st.spinner("🤖 AI 正在創作中..."):
                 try:
-                    if data["settings"]["api_provider"] == "gemini":
+                    # 使用正確的 api_key 和 api_provider（來自 Secrets 或手動輸入）
+                    if api_provider == "gemini":
                         result = generate_with_gemini(
-                            data["settings"]["api_key"],
+                            api_key,
                             fragments,
                             promotion
                         )
                     else:
                         result = generate_with_openai(
-                            data["settings"]["api_key"],
+                            api_key,
                             fragments,
                             promotion
                         )
