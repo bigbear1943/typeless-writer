@@ -284,18 +284,17 @@ def main():
     
     # ========== 捕捉靈感模式 ==========
     if mode == "✏️ 捕捉靈感":
-        # 初始化輸入框狀態
-        if "fragment_input" not in st.session_state:
-            st.session_state.fragment_input = ""
+        # 使用計數器來重置輸入框
+        if "input_key" not in st.session_state:
+            st.session_state.input_key = 0
         
-        # 輸入區
+        # 輸入區（使用動態 key 來強制重新渲染）
         new_fragment = st.text_area(
             "記錄你的靈感碎片...",
-            value=st.session_state.fragment_input,
             height=120,
             placeholder="在這裡輸入任何想法、句子、關鍵詞...",
             label_visibility="collapsed",
-            key="fragment_text_area"
+            key=f"fragment_input_{st.session_state.input_key}"
         )
         
         if st.button("📝 加入碎片", use_container_width=True, type="primary"):
@@ -306,8 +305,8 @@ def main():
                 }
                 data["projects"][current_project]["fragments"].insert(0, fragment)
                 save_data(data)
-                # 清空輸入框
-                st.session_state.fragment_input = ""
+                # 增加 key 計數器，強制輸入框重新渲染（清空）
+                st.session_state.input_key += 1
                 st.rerun()
         
         st.divider()
